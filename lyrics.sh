@@ -37,13 +37,23 @@ fi
 
 pkill -f mpv 2>/dev/null
 sleep 0.5
-mpv --no-video --input-ipc-server=$HOME/mpvsocket "$AUDIO_FILE" >/dev/null 2>&1 &
+mpv  --ao=pulse --no-video --input-ipc-server=$HOME/mpvsocket "$AUDIO_FILE" >/dev/null 2>&1 &
 clear
 
 echo "Engine loaded. Initializing visualization..."
 sleep 1
 LAST_LYRIC=""
 
+    # Try to grab the position data
+    RAW_TIME=$(echo '{ "command": ["get_property", "time-pos"] }' | socat - "$HOME/mpvsocket" 2>/dev/null)
+    
+    # Check if socat didn't get a response at all
+    if [ -z "$RAW_TIME" ]; then
+        sleep 0.2
+        continue
+    fi
+
+    CURRENT_SEC=$(echo "$RAW_TIME" | jq -r '.data // -1')
 while true; do
     RAW_TIME=$(echo '{ "command": ["get_property", "time-pos"] }' | socat - $HOME/mpvsocket 2>/dev/null)
     CURRENT_SEC=$(echo "$RAW_TIME" | jq -r '.data // -1')
@@ -81,3 +91,15 @@ while true; do
     sleep 0.1
 done
 pkill -f mpv 2>/dev/null
+while true; do
+    # Try to grab the position data
+    RAW_TIME=$(echo '{ "command": ["get_property", "time-pos"] }' | socat - "$HOME/mpvsocket" 2>/dev/null)
+    
+    # Check if socat didn't get a response at all
+    if [ -z "$RAW_TIME" ]; then
+        sleep 0.2
+        continue
+    fi
+
+    CURRENT_SEC=$(echo "$RAW_TIME" | jq -r '.data // -1')
+
